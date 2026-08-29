@@ -4,6 +4,7 @@ import { Menu, X, LayoutDashboard, Timer, History, Settings } from "lucide-react
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import { Toaster } from "sonner"
 
 const navItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -44,12 +45,12 @@ export function Layout() {
             {/* Desktop Sidebar */}
             <aside className="hidden w-64 flex-col border-r bg-background p-4 md:flex">
                 <div className="mb-6 flex justify-center">
-                    <span className="font-bold text-xl">Vigil</span>   {/* changed to font-bold */}
+                    <span className="font-bold text-xl">Vigil</span>
                 </div>
                 <NavLinks />
             </aside>
 
-            {/* Mobile Header with Burger + Logo */}
+            {/* Mobile Header */}
             <div className="fixed left-0 right-0 top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4 md:hidden">
                 <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                     <SheetTrigger>
@@ -59,7 +60,7 @@ export function Layout() {
                     </SheetTrigger>
                     <SheetContent side="left" className="w-64 p-4">
                         <div className="mb-6 flex items-center justify-between">
-                            <span className="font-bold text-xl">Vigil</span>   {/* changed */}
+                            <span className="font-bold text-xl">Vigil</span>
                             <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(false)}>
                                 <X className="size-5" />
                             </Button>
@@ -67,7 +68,7 @@ export function Layout() {
                         <NavLinks onClick={() => setIsMobileOpen(false)} />
                     </SheetContent>
                 </Sheet>
-                <span className="font-bold text-xl">Vigil</span>   {/* changed */}
+                <span className="font-bold text-xl">Vigil</span>
                 <div className="w-8" />
             </div>
 
@@ -77,6 +78,9 @@ export function Layout() {
                     <Outlet />
                 </div>
             </main>
+
+            {/* Toast notifications - now top-right */}
+            <Toaster position="top-right" richColors />
         </div>
     )
 }
