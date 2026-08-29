@@ -48,13 +48,13 @@ export function Timer() {
 
     const handleSave = () => {
         if (seconds === 0) {
-            toast.error("Timer is empty – nothing to save")
+            toast.error("Timer is empty – nothing to save", { duration: 2000 })
             return
         }
         const endTime = new Date()
         const start = sessionStart || new Date(endTime.getTime() - seconds * 1000)
         addEntry(seconds, start, endTime)
-        toast.success(`Time saved: ${formatTime(seconds)}`)
+        toast.success(`Time saved: ${formatTime(seconds)}`, { duration: 2000 })
         setSeconds(0)
         setIsRunning(false)
         setIsPaused(false)
