@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Play, Pause, Save, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { useTimer } from "@/context/TimerContext"
+import { cn } from "@/lib/utils"
 
 export function Timer() {
     const [seconds, setSeconds] = useState(0)
@@ -28,7 +28,6 @@ export function Timer() {
 
     const handleStart = () => {
         if (!isRunning && seconds === 0) {
-            // fresh start
             setSessionStart(new Date())
         }
         setIsRunning(true)
@@ -53,11 +52,9 @@ export function Timer() {
             return
         }
         const endTime = new Date()
-        // If sessionStart is null (shouldn't happen), fallback to current time minus duration
         const start = sessionStart || new Date(endTime.getTime() - seconds * 1000)
         addEntry(seconds, start, endTime)
         toast.success(`Time saved: ${formatTime(seconds)}`)
-        // Reset
         setSeconds(0)
         setIsRunning(false)
         setIsPaused(false)
@@ -78,42 +75,49 @@ export function Timer() {
     let primaryButton = null
     if (isIdle) {
         primaryButton = (
-            <Button onClick={handleStart} className="gap-2">
+            <Button onClick={handleStart} variant="default" size="lg" className="gap-2 rounded-full px-6">
                 <Play className="size-4" /> Start
             </Button>
         )
     } else if (isActive) {
         primaryButton = (
-            <Button onClick={handleStop} variant="outline" className="gap-2">
+            <Button onClick={handleStop} variant="outline" size="lg" className="gap-2 rounded-full px-6">
                 <Pause className="size-4" /> Stop
             </Button>
         )
     } else if (isPausedState) {
         primaryButton = (
-            <Button onClick={handleSave} className="gap-2">
+            <Button onClick={handleSave} variant="default" size="lg" className="gap-2 rounded-full px-6">
                 <Save className="size-4" /> Save
             </Button>
         )
     }
 
     return (
-        <div className="flex min-h-[calc(100vh-6rem)] items-center justify-center">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle className="text-center text-2xl">Timer</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="text-center font-mono text-6xl font-bold tracking-wider">
-                        {formatTime(seconds)}
-                    </div>
-                    <div className="flex justify-center gap-4">
-                        {primaryButton}
-                        <Button onClick={handleReset} variant="destructive" className="gap-2">
-                            <RotateCcw className="size-4" /> Reset
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center space-y-8">
+            {/* Timer Display */}
+            <div
+                className={cn(
+                    "font-mono text-7xl font-light tracking-wider transition-colors duration-300 md:text-8xl lg:text-9xl",
+                    isRunning && "text-primary"
+                )}
+            >
+                {formatTime(seconds)}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-4">
+                {primaryButton}
+                <Button
+                    onClick={handleReset}
+                    variant="ghost"
+                    size="lg"
+                    className="gap-2 rounded-full px-6 text-muted-foreground hover:text-foreground"
+                >
+                    <RotateCcw className="size-4" />
+                    Reset
+                </Button>
+            </div>
         </div>
     )
 }
