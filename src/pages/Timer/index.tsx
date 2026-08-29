@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Play, Pause, Save, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { useTimer } from "@/context/TimerContext"
-import { cn } from "@/lib/utils"
+import { TimerDisplay } from "./TimerDisplay"
+import { TimerControls } from "./TimerControls"
 
 export function Timer() {
+    const { addEntry } = useTimer()
     const [seconds, setSeconds] = useState(0)
     const [isRunning, setIsRunning] = useState(false)
     const [isPaused, setIsPaused] = useState(false)
     const [sessionStart, setSessionStart] = useState<Date | null>(null)
-    const { addEntry } = useTimer()
 
     useEffect(() => {
         let interval: number | null = null
@@ -72,52 +71,18 @@ export function Timer() {
     const isActive = isRunning
     const isPausedState = !isRunning && isPaused && seconds > 0
 
-    let primaryButton = null
-    if (isIdle) {
-        primaryButton = (
-            <Button onClick={handleStart} variant="default" size="lg" className="gap-2 rounded-full px-6">
-                <Play className="size-4" /> Start
-            </Button>
-        )
-    } else if (isActive) {
-        primaryButton = (
-            <Button onClick={handleStop} variant="outline" size="lg" className="gap-2 rounded-full px-6">
-                <Pause className="size-4" /> Stop
-            </Button>
-        )
-    } else if (isPausedState) {
-        primaryButton = (
-            <Button onClick={handleSave} variant="default" size="lg" className="gap-2 rounded-full px-6">
-                <Save className="size-4" /> Save
-            </Button>
-        )
-    }
-
     return (
         <div className="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center space-y-8">
-            {/* Timer Display */}
-            <div
-                className={cn(
-                    "font-mono text-7xl font-light tracking-wider transition-colors duration-300 md:text-8xl lg:text-9xl",
-                    isRunning && "text-primary"
-                )}
-            >
-                {formatTime(seconds)}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-4">
-                {primaryButton}
-                <Button
-                    onClick={handleReset}
-                    variant="ghost"
-                    size="lg"
-                    className="gap-2 rounded-full px-6 text-muted-foreground hover:text-foreground"
-                >
-                    <RotateCcw className="size-4" />
-                    Reset
-                </Button>
-            </div>
+            <TimerDisplay seconds={seconds} isRunning={isRunning} formatTime={formatTime} />
+            <TimerControls
+                isIdle={isIdle}
+                isActive={isActive}
+                isPausedState={isPausedState}
+                onStart={handleStart}
+                onStop={handleStop}
+                onSave={handleSave}
+                onReset={handleReset}
+            />
         </div>
     )
 }
