@@ -1,3 +1,4 @@
+// src/context/TimerContext.tsx
 import {
     createContext,
     useContext,
@@ -31,61 +32,78 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<TimerEntry[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // start as true to show loader
     const [session, setSession] = useState<Session | null>(null);
 
-    // Auth listener
+    // ---- Debug logs (can be removed later) ----
     useEffect(() => {
+        console.log("🔍 [TimerContext] loading changed to:", loading);
+    }, [loading]);
+    useEffect(() => {
+        console.log("🔍 [TimerContext] entries count changed to:", entries.length);
+    }, [entries]);
+    useEffect(() => {
+        console.log("🔍 [TimerContext] session changed:", session?.user?.email || "null");
+    }, [session]);
+
+    // ---- DRY helper for authenticated operations ----
+    const requireAuth = useCallback(() => {
+        if (!session?.user) {
+            console.error("❌ [TimerContext] Not authenticated");
+            throw new Error("Not authenticated");
+        }
+        return session.user;
+    }, [session]);
+
+    // ---- Auth listener ----
+    useEffect(() => {
+        console.log("🔐 [TimerContext] Auth listener mounting...");
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             if (session?.user) {
-                console.log("🔐 Initial session found for:", session.user.email);
+                console.log("🔐 [TimerContext] Initial session found for:", session.user.email);
             } else {
-                console.log("🔐 No active session");
+                console.log("🔐 [TimerContext] No active session");
+                // Keep loading true – we'll wait for session
             }
         });
 
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log(`🔐 Auth event: ${event}`, session?.user?.email || "No user");
+            console.log(`🔐 [TimerContext] Auth event: ${event}`, session?.user?.email || "No user");
             setSession(session);
-            // 🧹 Immediately clear entries on sign-out to prevent stale data
             if (event === "SIGNED_OUT") {
                 setEntries([]);
-                setLoading(false);
-                console.log("🧹 Cleared entries on sign-out");
+                setLoading(false); // no user, no data
+                console.log("🧹 [TimerContext] Cleared entries on sign-out");
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            console.log("🔐 [TimerContext] Auth listener unmounting");
+            subscription.unsubscribe();
+        };
     }, []);
 
-    // Fetch entries when session changes (but skip if we just cleared on sign-out)
-    useEffect(() => {
-        if (session?.user) {
-            fetchEntries();
-        } else {
-            // If there's no session, we already cleared entries in the auth listener,
-            // but this is a safety net.
-            setEntries([]);
-            setLoading(false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [session]);
-
+    // ---- fetchEntries with proper auth check ----
     const fetchEntries = useCallback(
         async (startDate?: Date, endDate?: Date) => {
+            console.log("🔷 [TimerContext] fetchEntries called", {
+                startDate: startDate?.toISOString(),
+                endDate: endDate?.toISOString(),
+            });
+
+            // If no session, skip fetching – keep loading as is (likely true)
             if (!session?.user) {
-                console.warn("⏳ fetchEntries: No authenticated user");
+                console.warn("⏳ [TimerContext] fetchEntries: No authenticated user, skipping");
+                // Do NOT set loading false; we want loader to stay until session appears
                 return;
             }
-            console.log(
-                `🔄 Fetching entries for user: ${session.user.email}`,
-                startDate ? `from ${startDate.toISOString()}` : "",
-                endDate ? `to ${endDate.toISOString()}` : ""
-            );
+
+            console.log(`🔄 [TimerContext] Fetching entries for user: ${session.user.email}`);
             setLoading(true);
+
             let query = supabase
                 .from("timer_entries")
                 .select("*")
@@ -101,32 +119,30 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
             const { data, error } = await query;
             if (error) {
-                console.error("❌ Error fetching entries:", error);
+                console.error("❌ [TimerContext] Error fetching entries:", error);
                 setEntries([]);
-            } else {
-                console.log(`✅ Fetched ${data?.length || 0} entries`);
-                setEntries(data || []);
+                setLoading(false);
+                console.log("❌ [TimerContext] setLoading(false) after error");
+                throw error;
             }
+
+            console.log(`✅ [TimerContext] Fetched ${data?.length || 0} entries`);
+            setEntries(data || []);
             setLoading(false);
+            console.log("✅ [TimerContext] setLoading(false) after success");
         },
-        [session]
+        [session] // depends on session – when session changes, function changes
     );
 
+    // ---- addEntry (requires auth) ----
     const addEntry = useCallback(
         async (duration: number, startTime: Date, endTime: Date) => {
-            if (!session?.user) {
-                console.error("❌ addEntry: Not authenticated");
-                throw new Error("Not authenticated");
-            }
+            const user = requireAuth();
             console.log(
-                `🔄 Adding entry: ${duration}s, user: ${session.user.email}`,
-                "start:",
-                startTime.toISOString(),
-                "end:",
-                endTime.toISOString()
+                `🔄 [TimerContext] Adding entry: ${duration}s, user: ${user.email}`
             );
             const newEntry = {
-                user_id: session.user.id,
+                user_id: user.id,
                 start_time: startTime.toISOString(),
                 end_time: endTime.toISOString(),
                 duration,
@@ -137,66 +153,64 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 .select()
                 .single();
             if (error) {
-                console.error("❌ Error adding entry:", error);
+                console.error("❌ [TimerContext] Error adding entry:", error);
                 throw error;
             }
-            console.log(`✅ Entry added with ID: ${data.id}`);
+            console.log(`✅ [TimerContext] Entry added with ID: ${data.id}`);
             setEntries((prev) => [data, ...prev]);
         },
-        [session]
+        [requireAuth]
     );
 
+    // ---- deleteEntry (requires auth) ----
     const deleteEntry = useCallback(
         async (id: string) => {
-            if (!session?.user) {
-                console.error("❌ deleteEntry: Not authenticated");
-                throw new Error("Not authenticated");
-            }
-            console.log(`🔄 Deleting entry: ${id} for user ${session.user.email}`);
+            const user = requireAuth();
+            console.log(`🔄 [TimerContext] Deleting entry: ${id}`);
             const { error } = await supabase
                 .from("timer_entries")
                 .delete()
                 .eq("id", id)
-                .eq("user_id", session.user.id);
+                .eq("user_id", user.id);
             if (error) {
-                console.error("❌ Error deleting entry:", error);
+                console.error("❌ [TimerContext] Error deleting entry:", error);
                 throw error;
             }
-            console.log(`✅ Entry ${id} deleted`);
+            console.log(`✅ [TimerContext] Entry ${id} deleted`);
             setEntries((prev) => prev.filter((e) => e.id !== id));
         },
-        [session]
+        [requireAuth]
     );
 
+    // ---- updateEntry (requires auth) ----
     const updateEntry = useCallback(
         async (id: string, updates: Partial<TimerEntry>) => {
-            if (!session?.user) {
-                console.error("❌ updateEntry: Not authenticated");
-                throw new Error("Not authenticated");
-            }
-            console.log(`🔄 Updating entry: ${id} with`, updates);
+            const user = requireAuth();
+            console.log(`🔄 [TimerContext] Updating entry: ${id}`);
             const { data, error } = await supabase
                 .from("timer_entries")
                 .update(updates)
                 .eq("id", id)
-                .eq("user_id", session.user.id)
+                .eq("user_id", user.id)
                 .select()
                 .single();
             if (error) {
-                console.error("❌ Error updating entry:", error);
+                console.error("❌ [TimerContext] Error updating entry:", error);
                 throw error;
             }
-            console.log(`✅ Entry ${id} updated`);
+            console.log(`✅ [TimerContext] Entry ${id} updated`);
             setEntries((prev) => prev.map((e) => (e.id === id ? data : e)));
         },
-        [session]
+        [requireAuth]
     );
 
+    // ---- clearEntries ----
     const clearEntries = useCallback(() => {
-        console.log("🧹 Clearing entries locally");
+        console.log("🧹 [TimerContext] Clearing entries locally");
         setEntries([]);
     }, []);
 
+    // ---- Context value ----
     const value = useMemo(
         () => ({
             entries,
@@ -207,7 +221,15 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             fetchEntries,
             clearEntries,
         }),
-        [entries, loading, addEntry, deleteEntry, updateEntry, fetchEntries, clearEntries]
+        [
+            entries,
+            loading,
+            addEntry,
+            deleteEntry,
+            updateEntry,
+            fetchEntries,
+            clearEntries,
+        ]
     );
 
     return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>;

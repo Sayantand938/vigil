@@ -1,8 +1,10 @@
+// src/pages/Timer/index.tsx
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTimer } from "@/context/TimerContext";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
+import { formatTimerDisplay } from "@/lib/utils"; // ✅ import
 
 export function Timer() {
     const { addEntry } = useTimer();
@@ -37,7 +39,7 @@ export function Timer() {
     const handleStop = () => {
         setIsRunning(false);
         setIsPaused(true);
-        console.log(`⏱️ Timer: Stopped at ${formatTime(seconds)}`);
+        console.log(`⏱️ Timer: Stopped at ${formatTimerDisplay(seconds)}`);
     };
 
     const handleReset = () => {
@@ -56,28 +58,20 @@ export function Timer() {
         }
         const endTime = new Date();
         const start = sessionStart || new Date(endTime.getTime() - seconds * 1000);
-        console.log(`⏱️ Timer: Saving ${formatTime(seconds)} (${seconds}s)`);
+        console.log(`⏱️ Timer: Saving ${formatTimerDisplay(seconds)} (${seconds}s)`);
         addEntry(seconds, start, endTime)
             .then(() => {
-                toast.success(`Time saved: ${formatTime(seconds)}`, { duration: 2000 });
+                toast.success(`Time saved: ${formatTimerDisplay(seconds)}`, { duration: 2000 });
                 console.log("✅ Timer saved successfully");
             })
             .catch((err) => {
                 console.error("❌ Timer save failed:", err);
                 toast.error("Failed to save timer");
             });
-        // Reset after saving (even if it fails, we reset the local state)
         setSeconds(0);
         setIsRunning(false);
         setIsPaused(false);
         setSessionStart(null);
-    };
-
-    const formatTime = (totalSeconds: number) => {
-        const hrs = Math.floor(totalSeconds / 3600);
-        const mins = Math.floor((totalSeconds % 3600) / 60);
-        const secs = totalSeconds % 60;
-        return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     };
 
     const isIdle = !isRunning && !isPaused && seconds === 0;
@@ -86,7 +80,7 @@ export function Timer() {
 
     return (
         <div className="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center space-y-8">
-            <TimerDisplay seconds={seconds} isRunning={isRunning} formatTime={formatTime} />
+            <TimerDisplay seconds={seconds} isRunning={isRunning} formatTime={formatTimerDisplay} />
             <TimerControls
                 isIdle={isIdle}
                 isActive={isActive}

@@ -1,3 +1,4 @@
+// src/components/LoginSignup.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
 
 export function LoginSignup() {
@@ -103,24 +103,14 @@ export function LoginSignup() {
                                         required
                                     />
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox id="remember" />
-                                        <Label htmlFor="remember" className="text-sm font-normal">
-                                            Remember me
-                                        </Label>
-                                    </div>
-                                    <Button variant="link" className="px-0 text-sm">
-                                        Forgot password?
-                                    </Button>
-                                </div>
+                                {/* Removed the "remember me" checkbox and "forgot password" link – you can add them back later */}
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? "Logging in..." : "Login"}
                                 </Button>
                             </form>
                         </TabsContent>
 
-                        {/* SIGNUP TAB */}
+                        {/* SIGNUP TAB (unchanged) */}
                         <TabsContent value="signup">
                             <form onSubmit={handleSignup} className="space-y-4">
                                 <div className="space-y-2">
