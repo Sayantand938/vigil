@@ -1,23 +1,67 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
 
 export function LoginSignup() {
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
 
-    async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    // Login state
+    const [loginEmail, setLoginEmail] = useState("");
+    const [loginPassword, setLoginPassword] = useState("");
+
+    // Signup state
+    const [signupName, setSignupName] = useState("");
+    const [signupEmail, setSignupEmail] = useState("");
+    const [signupPassword, setSignupPassword] = useState("");
+    const [signupConfirm, setSignupConfirm] = useState("");
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
         setIsLoading(true);
-        // Simulate async login/signup
-        setTimeout(() => {
-            setIsLoading(false);
-            alert("Form submitted (demo)");
-        }, 1000);
-    }
+        console.log(`🔑 Login attempt for: ${loginEmail}`);
+        const { error } = await supabase.auth.signInWithPassword({
+            email: loginEmail,
+            password: loginPassword,
+        });
+        if (error) {
+            console.error("❌ Login error:", error);
+            alert(error.message);
+        } else {
+            console.log(`✅ User logged in: ${loginEmail}`);
+            navigate("/");
+        }
+        setIsLoading(false);
+    };
+
+    const handleSignup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (signupPassword !== signupConfirm) {
+            alert("Passwords do not match");
+            return;
+        }
+        setIsLoading(true);
+        console.log(`📝 Signup attempt for: ${signupEmail}`);
+        const { error } = await supabase.auth.signUp({
+            email: signupEmail,
+            password: signupPassword,
+            options: { data: { full_name: signupName } },
+        });
+        if (error) {
+            console.error("❌ Signup error:", error);
+            alert(error.message);
+        } else {
+            console.log(`✅ User signed up: ${signupEmail}`);
+            alert("Check your email for confirmation!");
+        }
+        setIsLoading(false);
+    };
 
     return (
         <div className="flex min-h-svh items-center justify-center p-4">
@@ -37,13 +81,15 @@ export function LoginSignup() {
 
                         {/* LOGIN TAB */}
                         <TabsContent value="login">
-                            <form onSubmit={onSubmit} className="space-y-4">
+                            <form onSubmit={handleLogin} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="login-email">Email</Label>
                                     <Input
                                         id="login-email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        value={loginEmail}
+                                        onChange={(e) => setLoginEmail(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -52,6 +98,8 @@ export function LoginSignup() {
                                     <Input
                                         id="login-password"
                                         type="password"
+                                        value={loginPassword}
+                                        onChange={(e) => setLoginPassword(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -74,13 +122,15 @@ export function LoginSignup() {
 
                         {/* SIGNUP TAB */}
                         <TabsContent value="signup">
-                            <form onSubmit={onSubmit} className="space-y-4">
+                            <form onSubmit={handleSignup} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="signup-name">Full Name</Label>
                                     <Input
                                         id="signup-name"
                                         type="text"
                                         placeholder="John Doe"
+                                        value={signupName}
+                                        onChange={(e) => setSignupName(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -90,6 +140,8 @@ export function LoginSignup() {
                                         id="signup-email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        value={signupEmail}
+                                        onChange={(e) => setSignupEmail(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -98,6 +150,8 @@ export function LoginSignup() {
                                     <Input
                                         id="signup-password"
                                         type="password"
+                                        value={signupPassword}
+                                        onChange={(e) => setSignupPassword(e.target.value)}
                                         required
                                     />
                                 </div>
@@ -106,6 +160,8 @@ export function LoginSignup() {
                                     <Input
                                         id="signup-confirm"
                                         type="password"
+                                        value={signupConfirm}
+                                        onChange={(e) => setSignupConfirm(e.target.value)}
                                         required
                                     />
                                 </div>

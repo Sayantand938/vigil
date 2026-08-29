@@ -1,16 +1,17 @@
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon } from "lucide-react"
-import { format, isSameDay, startOfDay } from "date-fns"
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format, isSameDay, startOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type HistoryHeaderProps = {
-    selectedDate: Date
-    setSelectedDate: (date: Date) => void
-}
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
+};
 
 export function HistoryHeader({ selectedDate, setSelectedDate }: HistoryHeaderProps) {
-    const isToday = isSameDay(selectedDate, new Date())
+    const isToday = isSameDay(selectedDate, new Date());
 
     return (
         <div className="flex items-start justify-between">
@@ -21,11 +22,14 @@ export function HistoryHeader({ selectedDate, setSelectedDate }: HistoryHeaderPr
                 </p>
             </div>
             <Popover>
-                <PopoverTrigger>
-                    <Button variant="outline" className="gap-2 rounded-full px-4">
-                        <CalendarIcon className="size-4" />
-                        {format(selectedDate, "MMM d, yyyy")}
-                    </Button>
+                <PopoverTrigger
+                    className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "gap-2 rounded-full px-4"
+                    )}
+                >
+                    <CalendarIcon className="size-4" />
+                    {format(selectedDate, "MMM d, yyyy")}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
                     <Calendar
@@ -36,5 +40,5 @@ export function HistoryHeader({ selectedDate, setSelectedDate }: HistoryHeaderPr
                 </PopoverContent>
             </Popover>
         </div>
-    )
+    );
 }
