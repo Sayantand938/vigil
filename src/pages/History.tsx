@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTimer } from "@/context/TimerContext"
 import {
     Table,
@@ -8,22 +9,22 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { Clock, CalendarIcon } from "lucide-react"
+import { format, isSameDay, startOfDay } from "date-fns"
 
 export function History() {
     const { entries } = useTimer()
+    const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()))
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const filteredEntries = entries.filter((entry) =>
+        isSameDay(entry.startTime, selectedDate)
+    )
 
-    const todayEntries = entries.filter((entry) => {
-        const entryDate = new Date(entry.startTime)
-        entryDate.setHours(0, 0, 0, 0)
-        return entryDate.getTime() === today.getTime()
-    })
-
-    const totalSessions = todayEntries.length
-    const totalDuration = todayEntries.reduce((sum, entry) => sum + entry.duration, 0)
+    const totalSessions = filteredEntries.length
+    const totalDuration = filteredEntries.reduce((sum, entry) => sum + entry.duration, 0)
 
     const formatDuration = (seconds: number) => {
         const hrs = Math.floor(seconds / 3600)
@@ -40,14 +41,33 @@ export function History() {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     }
 
+    const isToday = isSameDay(selectedDate, new Date())
+
     return (
         <div className="max-w-5xl mx-auto space-y-8">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">History</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Your timer sessions for today
-                </p>
+            {/* Header with Date Picker */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">History</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        {isToday ? "Today's sessions" : format(selectedDate, "EEEE, MMMM d, yyyy")}
+                    </p>
+                </div>
+                <Popover>
+                    <PopoverTrigger>
+                        <Button variant="outline" className="gap-2 rounded-full px-4">
+                            <CalendarIcon className="size-4" />
+                            {format(selectedDate, "MMM d, yyyy")}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => date && setSelectedDate(startOfDay(date))}
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
 
             {/* Stats Summary */}
@@ -69,16 +89,18 @@ export function History() {
             </div>
 
             {/* Table */}
-            {todayEntries.length === 0 ? (
+            {filteredEntries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
                     <Clock className="size-10 text-muted-foreground/40" />
-                    <p className="mt-4 text-sm text-muted-foreground">No timer entries for today</p>
+                    <p className="mt-4 text-sm text-muted-foreground">
+                        No timer entries for {format(selectedDate, "MMMM d, yyyy")}
+                    </p>
                 </div>
             ) : (
                 <Card className="border-0 shadow-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
-                            {todayEntries.length} session{todayEntries.length > 1 ? "s" : ""}
+                            {filteredEntries.length} session{filteredEntries.length > 1 ? "s" : ""}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -92,7 +114,7 @@ export function History() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {todayEntries.map((entry, index) => (
+                                {filteredEntries.map((entry, index) => (
                                     <TableRow key={entry.id}>
                                         <TableCell className="font-mono text-sm text-muted-foreground">
                                             {index + 1}
