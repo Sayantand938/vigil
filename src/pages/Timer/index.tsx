@@ -110,7 +110,7 @@ export function Timer() {
         }
     }, [isRunning, isPending, createActiveSession]);
 
-    // ---- Stop (pause, pending save) ----
+    // ---- Stop (pending save) ----
     const handleStop = useCallback(async () => {
         if (!isRunning || !activeSession) return;
 
@@ -136,7 +136,7 @@ export function Timer() {
         }
     }, [isRunning, activeSession, seconds, updateEntry]);
 
-    // ---- Save (save to DB) ----
+    // ---- Save (finalise) ----
     const handleSave = useCallback(async () => {
         if (!isPending || !activeSession) {
             toast.error("No session to save");
@@ -216,7 +216,6 @@ export function Timer() {
                 onSave={handleSave}
                 onReset={handleReset}
             />
-            {/* All status text removed */}
         </div>
     );
 }

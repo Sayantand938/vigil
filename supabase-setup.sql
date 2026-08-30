@@ -11,16 +11,14 @@ CREATE TABLE timer_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-  end_time TIMESTAMPTZ NULL, -- NULL means active session (not saved yet)
-  stopped_at TIMESTAMPTZ NULL, -- when user clicked Stop (before Save)
-  elapsed_time INT NOT NULL DEFAULT 0, -- in seconds
+  end_time TIMESTAMPTZ NULL,          -- NULL = not saved yet
+  stopped_at TIMESTAMPTZ NULL,        -- when user clicked Stop (pending save)
+  elapsed_time INT NOT NULL DEFAULT 0, -- set by app on Save
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Enable RLS
 ALTER TABLE timer_entries ENABLE ROW LEVEL SECURITY;
 
--- Policies
 CREATE POLICY "Users can view their own entries"
   ON timer_entries FOR SELECT
   USING (auth.uid() = user_id);
@@ -37,7 +35,7 @@ CREATE POLICY "Users can delete their own entries"
   ON timer_entries FOR DELETE
   USING (auth.uid() = user_id);
 
--- No trigger – elapsed_time is set manually by the app
+-- No trigger – elapsed_time is set by the application.
 
 -- ============================================
 -- 2. user_settings (daily goal only)

@@ -14,9 +14,9 @@ import { type Session } from "@supabase/supabase-js";
 export type TimerEntry = {
     id: string;
     start_time: string;
-    end_time: string | null;      // null = not saved yet (active or pending)
-    stopped_at: string | null;    // null = running, set = pending save
-    elapsed_time: number;          // seconds
+    end_time: string | null;
+    stopped_at: string | null;    // NEW: indicates pending save
+    elapsed_time: number;
     created_at: string;
 };
 
@@ -32,14 +32,12 @@ type TimerContextType = {
     updateEntry: (id: string, updates: Partial<TimerEntry>) => Promise<void>;
     fetchEntries: (startDate?: Date, endDate?: Date) => Promise<void>;
     clearEntries: () => void;
-    // Active session management
     activeSession: TimerEntry | null;
     createActiveSession: () => Promise<TimerEntry>;
     stopActiveSession: (sessionId: string, endTime: Date, elapsedTime: number) => Promise<TimerEntry>;
     checkActiveSession: () => Promise<TimerEntry | null>;
     loadActiveSession: () => Promise<TimerEntry | null>;
     clearActiveSession: () => void;
-    // Settings
     settings: UserSettings | null;
     loadingSettings: boolean;
     fetchSettings: () => Promise<void>;
@@ -62,7 +60,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             setSession(session);
             if (session?.user) {
                 fetchSettings();
-                // Don't auto-load active session here – Timer page handles it
             }
         });
 
@@ -109,7 +106,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         [session]
     );
 
-    // ---- addEntry (for manual saving, e.g., History) ----
+    // ---- addEntry (manual save) ----
     const addEntry = useCallback(
         async (duration: number, startTime: Date, endTime: Date) => {
             if (!session?.user) throw new Error("Not authenticated");
@@ -173,7 +170,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     // ---- Active Session Management ----
     const checkActiveSession = useCallback(async (): Promise<TimerEntry | null> => {
         if (!session?.user) return null;
-        // Get the most recent session that is not yet saved (end_time is null)
         const { data, error } = await supabase
             .from("timer_entries")
             .select("*")
@@ -203,7 +199,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const createActiveSession = useCallback(async (): Promise<TimerEntry> => {
         if (!session?.user) throw new Error("Not authenticated");
 
-        // Check if there's already an active session
         const existing = await checkActiveSession();
         if (existing) {
             setActiveSession(existing);
@@ -231,7 +226,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         return data;
     }, [session, checkActiveSession]);
 
-    // ---- stopActiveSession (called after user stops & saves) ----
+    // ---- stopActiveSession (called after Save) ----
     const stopActiveSession = useCallback(
         async (sessionId: string, endTime: Date, elapsedTime: number): Promise<TimerEntry> => {
             if (!session?.user) throw new Error("Not authenticated");
@@ -240,7 +235,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 .from("timer_entries")
                 .update({
                     end_time: endTime.toISOString(),
-                    elapsed_time: elapsedTime, // set by the UI
+                    elapsed_time: elapsedTime,
                 })
                 .eq("id", sessionId)
                 .eq("user_id", session.user.id)
