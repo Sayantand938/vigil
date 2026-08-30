@@ -117,20 +117,12 @@ export function Dashboard() {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Here's your productivity overview for today.
-                    </p>
-                </div>
-                <Button
-                    onClick={() => navigate("/timer")}
-                    className="gap-2 rounded-full px-4"
-                >
-                    <TimerIcon className="size-4" />
-                    Start Timer
-                </Button>
+            {/* Header – without Start Timer button */}
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-sm text-muted-foreground">
+                    Here's your productivity overview for today.
+                </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
