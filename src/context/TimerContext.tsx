@@ -14,8 +14,9 @@ import { type Session } from "@supabase/supabase-js";
 export type TimerEntry = {
     id: string;
     start_time: string;
-    end_time: string;
-    duration: number;
+    end_time: string | null; // null = active session
+    elapsed_time: number; // seconds
+    created_at: string;
 };
 
 export type UserSettings = {
@@ -30,6 +31,14 @@ type TimerContextType = {
     updateEntry: (id: string, updates: Partial<TimerEntry>) => Promise<void>;
     fetchEntries: (startDate?: Date, endDate?: Date) => Promise<void>;
     clearEntries: () => void;
+    // Active session management
+    activeSession: TimerEntry | null;
+    createActiveSession: () => Promise<TimerEntry>;
+    stopActiveSession: (sessionId: string, endTime: Date) => Promise<TimerEntry>;
+    checkActiveSession: () => Promise<TimerEntry | null>;
+    loadActiveSession: () => Promise<TimerEntry | null>;
+    clearActiveSession: () => void;
+    // Settings
     settings: UserSettings | null;
     loadingSettings: boolean;
     fetchSettings: () => Promise<void>;
@@ -42,6 +51,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const [entries, setEntries] = useState<TimerEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState<Session | null>(null);
+    const [activeSession, setActiveSession] = useState<TimerEntry | null>(null);
     const [settings, setSettings] = useState<UserSettings | null>(null);
     const [loadingSettings, setLoadingSettings] = useState(false);
 
@@ -51,6 +61,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             setSession(session);
             if (session?.user) {
                 fetchSettings();
+                // Don't auto-load active session here – Timer page handles it
             }
         });
 
@@ -60,6 +71,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             setSession(session);
             if (event === "SIGNED_OUT") {
                 setEntries([]);
+                setActiveSession(null);
                 setSettings(null);
                 setLoading(false);
             } else if (event === "SIGNED_IN" && session?.user) {
@@ -96,7 +108,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         [session]
     );
 
-    // ---- addEntry ----
+    // ---- addEntry (for manual saving, e.g., History) ----
     const addEntry = useCallback(
         async (duration: number, startTime: Date, endTime: Date) => {
             if (!session?.user) throw new Error("Not authenticated");
@@ -104,7 +116,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 user_id: session.user.id,
                 start_time: startTime.toISOString(),
                 end_time: endTime.toISOString(),
-                duration,
+                elapsed_time: duration,
             };
             const { data, error } = await supabase
                 .from("timer_entries")
@@ -113,6 +125,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 .single();
             if (error) throw error;
             setEntries((prev) => [data, ...prev]);
+            return data;
         },
         [session]
     );
@@ -128,8 +141,9 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 .eq("user_id", session.user.id);
             if (error) throw error;
             setEntries((prev) => prev.filter((e) => e.id !== id));
+            if (activeSession?.id === id) setActiveSession(null);
         },
-        [session]
+        [session, activeSession]
     );
 
     // ---- updateEntry ----
@@ -145,12 +159,97 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 .single();
             if (error) throw error;
             setEntries((prev) => prev.map((e) => (e.id === id ? data : e)));
+            if (activeSession?.id === id) setActiveSession(data);
+            return data;
         },
-        [session]
+        [session, activeSession]
     );
 
     // ---- clearEntries ----
     const clearEntries = useCallback(() => setEntries([]), []);
+
+    // ---- Active Session Management ----
+    const checkActiveSession = useCallback(async (): Promise<TimerEntry | null> => {
+        if (!session?.user) return null;
+        const { data, error } = await supabase
+            .from("timer_entries")
+            .select("*")
+            .eq("user_id", session.user.id)
+            .is("end_time", null)
+            .order("start_time", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Error checking active session:", error);
+            return null;
+        }
+        return data || null;
+    }, [session]);
+
+    const loadActiveSession = useCallback(async (): Promise<TimerEntry | null> => {
+        const active = await checkActiveSession();
+        if (active) {
+            setActiveSession(active);
+            return active;
+        }
+        setActiveSession(null);
+        return null;
+    }, [checkActiveSession]);
+
+    const createActiveSession = useCallback(async (): Promise<TimerEntry> => {
+        if (!session?.user) throw new Error("Not authenticated");
+
+        // Check if there's already an active session
+        const existing = await checkActiveSession();
+        if (existing) {
+            setActiveSession(existing);
+            return existing;
+        }
+
+        const now = new Date().toISOString();
+        const newEntry = {
+            user_id: session.user.id,
+            start_time: now,
+            end_time: null,
+            elapsed_time: 0,
+        };
+
+        const { data, error } = await supabase
+            .from("timer_entries")
+            .insert(newEntry)
+            .select()
+            .single();
+
+        if (error) throw error;
+        setActiveSession(data);
+        setEntries((prev) => [data, ...prev]);
+        return data;
+    }, [session, checkActiveSession]);
+
+    const stopActiveSession = useCallback(
+        async (sessionId: string, endTime: Date): Promise<TimerEntry> => {
+            if (!session?.user) throw new Error("Not authenticated");
+
+            const { data, error } = await supabase
+                .from("timer_entries")
+                .update({ end_time: endTime.toISOString() })
+                .eq("id", sessionId)
+                .eq("user_id", session.user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setActiveSession(null);
+            setEntries((prev) => prev.map((e) => (e.id === sessionId ? data : e)));
+            return data;
+        },
+        [session]
+    );
+
+    const clearActiveSession = useCallback(() => {
+        setActiveSession(null);
+    }, []);
 
     // ---- Settings ----
     const fetchSettings = useCallback(async () => {
@@ -199,6 +298,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             updateEntry,
             fetchEntries,
             clearEntries,
+            activeSession,
+            createActiveSession,
+            stopActiveSession,
+            checkActiveSession,
+            loadActiveSession,
+            clearActiveSession,
             settings,
             loadingSettings,
             fetchSettings,
@@ -212,6 +317,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             updateEntry,
             fetchEntries,
             clearEntries,
+            activeSession,
+            createActiveSession,
+            stopActiveSession,
+            checkActiveSession,
+            loadActiveSession,
+            clearActiveSession,
             settings,
             loadingSettings,
             fetchSettings,

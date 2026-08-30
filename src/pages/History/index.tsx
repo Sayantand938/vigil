@@ -6,13 +6,12 @@ import { HistoryHeader } from "./HistoryHeader";
 import { StatsSummary } from "./StatsSummary";
 import { EmptyState } from "./EmptyState";
 import { HistoryTable } from "./HistoryTable";
-import { formatDurationHuman, formatTimeLocale } from "@/lib/utils"; // ✅ imported
+import { formatDurationHuman, formatTimeLocale } from "@/lib/utils";
 
 export function History() {
     const { entries, loading, fetchEntries } = useTimer();
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
 
-    // Prevent duplicate fetches caused by StrictMode or dependency changes
     const fetchingRef = useRef(false);
     const lastFetchDateRef = useRef<string>("");
 
@@ -21,20 +20,16 @@ export function History() {
         const end = endOfDay(selectedDate);
         const dateKey = start.toISOString();
 
-        // If we're already fetching this exact date, skip
         if (fetchingRef.current && lastFetchDateRef.current === dateKey) {
-            console.log("⏭️ History: Skipping duplicate fetch for", dateKey);
             return;
         }
 
-        console.log(`📅 History: Fetching entries for ${selectedDate.toDateString()}`);
         fetchingRef.current = true;
         lastFetchDateRef.current = dateKey;
 
-        fetchEntries(start, end)
-            .finally(() => {
-                fetchingRef.current = false;
-            });
+        fetchEntries(start, end).finally(() => {
+            fetchingRef.current = false;
+        });
 
         return () => {
             fetchingRef.current = false;
@@ -42,7 +37,7 @@ export function History() {
     }, [selectedDate, fetchEntries]);
 
     const totalSessions = entries.length;
-    const totalDuration = entries.reduce((sum, entry) => sum + entry.duration, 0);
+    const totalDuration = entries.reduce((sum, entry) => sum + (entry.elapsed_time || 0), 0);
     const avgDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
 
     if (loading) {
@@ -60,14 +55,14 @@ export function History() {
                 totalSessions={totalSessions}
                 totalDuration={totalDuration}
                 avgDuration={avgDuration}
-                formatDuration={formatDurationHuman} // ✅ use imported
+                formatDuration={formatDurationHuman}
             />
             {entries.length === 0 ? (
                 <EmptyState selectedDate={selectedDate} />
             ) : (
                 <HistoryTable
                     entries={entries}
-                    formatTime={formatTimeLocale} // ✅ use imported
+                    formatTime={formatTimeLocale}
                     formatDuration={formatDurationHuman}
                 />
             )}

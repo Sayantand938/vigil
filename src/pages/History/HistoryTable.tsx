@@ -1,3 +1,4 @@
+// src/pages/History/HistoryTable.tsx
 import { useState } from "react";
 import {
     Table,
@@ -44,7 +45,7 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
 
     const handleEdit = (entry: TimerEntry) => {
         setEditingEntry(entry);
-        setEditDuration(String(entry.duration));
+        setEditDuration(String(entry.elapsed_time || 0));
         setEditDialogOpen(true);
     };
 
@@ -67,7 +68,7 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             return;
         }
         try {
-            await updateEntry(editingEntry.id, { duration: newDuration });
+            await updateEntry(editingEntry.id, { elapsed_time: newDuration });
             toast.success("Entry updated");
             setEditDialogOpen(false);
             setEditingEntry(null);
@@ -102,9 +103,11 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
                                         {index + 1}
                                     </TableCell>
                                     <TableCell>{formatTime(entry.start_time)}</TableCell>
-                                    <TableCell>{formatTime(entry.end_time)}</TableCell>
+                                    <TableCell>
+                                        {entry.end_time ? formatTime(entry.end_time) : "—"}
+                                    </TableCell>
                                     <TableCell className="text-right font-medium">
-                                        {formatDuration(entry.duration)}
+                                        {formatDuration(entry.elapsed_time || 0)}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

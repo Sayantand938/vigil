@@ -22,19 +22,15 @@ import {
 import { TimerIcon, TrendingUp, Clock, CalendarDays } from "lucide-react";
 import { formatDurationHuman, formatTimeLocale } from "@/lib/utils";
 
-// --------------------------------------------
-// Minimalist Circular Goal Widget Component
-// --------------------------------------------
 function GoalProgress({ achieved, goal }: { achieved: number; goal: number }) {
     const progress = goal > 0 ? Math.min((achieved / goal) * 100, 100) : 0;
-    const circumference = 2 * Math.PI * 40; // radius = 40
+    const circumference = 2 * Math.PI * 40;
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
         <Card className="border-0 bg-muted/20 shadow-sm">
             <CardContent className="flex flex-col items-center justify-center p-4">
                 <div className="relative size-28">
-                    {/* Background circle */}
                     <svg className="size-full -rotate-90" viewBox="0 0 100 100">
                         <circle
                             className="stroke-muted"
@@ -44,7 +40,6 @@ function GoalProgress({ achieved, goal }: { achieved: number; goal: number }) {
                             fill="none"
                             strokeWidth="6"
                         />
-                        {/* Progress circle */}
                         <circle
                             className="stroke-primary transition-all duration-700 ease-out"
                             cx="50"
@@ -57,7 +52,6 @@ function GoalProgress({ achieved, goal }: { achieved: number; goal: number }) {
                             strokeDashoffset={strokeDashoffset}
                         />
                     </svg>
-                    {/* Center text */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-lg font-semibold tabular-nums leading-none">
                             {achieved}m
@@ -80,9 +74,6 @@ function GoalProgress({ achieved, goal }: { achieved: number; goal: number }) {
     );
 }
 
-// --------------------------------------------
-// Main Dashboard
-// --------------------------------------------
 export function Dashboard() {
     const navigate = useNavigate();
     const { entries, loading, fetchEntries, settings, fetchSettings } = useTimer();
@@ -108,7 +99,7 @@ export function Dashboard() {
     }, [entries]);
 
     const totalSessions = todayEntries.length;
-    const totalDuration = todayEntries.reduce((sum, e) => sum + e.duration, 0);
+    const totalDuration = todayEntries.reduce((sum, e) => sum + (e.elapsed_time || 0), 0);
     const avgDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
 
     const todayMinutes = Math.round(totalDuration / 60);
@@ -126,7 +117,6 @@ export function Dashboard() {
 
     return (
         <div className="space-y-8">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
@@ -143,7 +133,6 @@ export function Dashboard() {
                 </Button>
             </div>
 
-            {/* Stats Cards (3 columns) */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -185,14 +174,12 @@ export function Dashboard() {
                 </Card>
             </div>
 
-            {/* Daily Goal – Circular Widget (shown only if goal > 0) */}
             {dailyGoal > 0 && (
                 <div className="flex justify-center">
                     <GoalProgress achieved={todayMinutes} goal={dailyGoal} />
                 </div>
             )}
 
-            {/* Recent Sessions */}
             <Card>
                 <CardHeader>
                     <CardTitle>Recent Sessions</CardTitle>
@@ -229,7 +216,7 @@ export function Dashboard() {
                                         <TableRow key={entry.id}>
                                             <TableCell>{formatTimeLocale(entry.start_time)}</TableCell>
                                             <TableCell className="text-right font-mono">
-                                                {formatDurationHuman(entry.duration)}
+                                                {formatDurationHuman(entry.elapsed_time || 0)}
                                             </TableCell>
                                         </TableRow>
                                     ))}
