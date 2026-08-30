@@ -1,3 +1,4 @@
+// src/components/Layout.tsx
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LayoutDashboard, Timer, History, Settings, LogOut } from "lucide-react";
@@ -6,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { LogViewer } from "./LogViewer"; // <-- ADD THIS
 
 const navItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -99,6 +101,7 @@ export function Layout() {
             </main>
 
             <Toaster position="top-right" richColors />
+            <LogViewer /> {/* <-- ADD THIS */}
         </div>
     );
 }

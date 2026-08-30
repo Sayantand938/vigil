@@ -1,28 +1,29 @@
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square, RotateCcw } from "lucide-react";
+import { Play, Square, Save, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TimerControlsProps = {
     isIdle: boolean;
-    isActive: boolean;
-    isPausedState: boolean;
+    isRunning: boolean;
+    isPending: boolean;
     onStart: () => void;
-    onPause: () => void;
-    onResume: () => void;
     onStop: () => void;
+    onSave: () => void;
     onReset: () => void;
 };
 
 export function TimerControls({
     isIdle,
-    isActive,
-    isPausedState,
+    isRunning,
+    isPending,
     onStart,
-    onPause,
-    onResume,
     onStop,
+    onSave,
     onReset,
 }: TimerControlsProps) {
     let primaryButton = null;
+    let resetVariant: "ghost" | "destructive" = "ghost";
+    let resetDisabled = false;
 
     if (isIdle) {
         primaryButton = (
@@ -30,43 +31,39 @@ export function TimerControls({
                 onClick={onStart}
                 variant="default"
                 size="lg"
-                className="gap-2 rounded-full px-6"
+                className="gap-2 rounded-full px-8"
             >
                 <Play className="size-4" /> Start
             </Button>
         );
-    } else if (isActive) {
+        resetVariant = "ghost";
+        resetDisabled = true;
+    } else if (isRunning) {
         primaryButton = (
             <Button
-                onClick={onPause}
-                variant="outline"
+                onClick={onStop}
+                variant="default"
                 size="lg"
-                className="gap-2 rounded-full px-6"
+                className="gap-2 rounded-full px-8"
             >
-                <Pause className="size-4" /> Pause
+                <Square className="size-4" /> Stop
             </Button>
         );
-    } else if (isPausedState) {
+        resetVariant = "ghost";
+        resetDisabled = false;
+    } else if (isPending) {
         primaryButton = (
-            <div className="flex gap-3">
-                <Button
-                    onClick={onResume}
-                    variant="default"
-                    size="lg"
-                    className="gap-2 rounded-full px-6"
-                >
-                    <Play className="size-4" /> Resume
-                </Button>
-                <Button
-                    onClick={onStop}
-                    variant="destructive"
-                    size="lg"
-                    className="gap-2 rounded-full px-6"
-                >
-                    <Square className="size-4" /> Stop
-                </Button>
-            </div>
+            <Button
+                onClick={onSave}
+                variant="default"
+                size="lg"
+                className="gap-2 rounded-full px-8"
+            >
+                <Save className="size-4" /> Save
+            </Button>
         );
+        resetVariant = "destructive";
+        resetDisabled = false;
     }
 
     return (
@@ -74,9 +71,14 @@ export function TimerControls({
             {primaryButton}
             <Button
                 onClick={onReset}
-                variant="ghost"
+                variant={resetVariant}
                 size="lg"
-                className="gap-2 rounded-full px-6 text-muted-foreground hover:text-foreground"
+                className={cn(
+                    "gap-2 rounded-full px-6 transition-all",
+                    resetVariant === "ghost" && "text-muted-foreground hover:text-foreground",
+                    resetVariant === "destructive" && "border-destructive/20 hover:bg-destructive/10"
+                )}
+                disabled={resetDisabled}
             >
                 <RotateCcw className="size-4" />
                 Reset

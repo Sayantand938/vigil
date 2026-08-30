@@ -13,12 +13,15 @@ export function Timer() {
         stopActiveSession,
         loadActiveSession,
         clearActiveSession,
+        deleteEntry,
+        updateEntry,
     } = useTimer();
 
     const [seconds, setSeconds] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
+    const [isPending, setIsPending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [stoppedSeconds, setStoppedSeconds] = useState(0);
     const intervalRef = useRef<number | null>(null);
 
     // ---- Check for active session on mount ----
@@ -28,19 +31,30 @@ export function Timer() {
             try {
                 const session = await loadActiveSession();
                 if (session) {
-                    // Calculate elapsed time from start_time to now
                     const start = new Date(session.start_time);
                     const now = new Date();
-                    const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
-                    setSeconds(elapsed);
-                    setIsRunning(true);
-                    setIsPaused(false);
-                    console.log(`⏱️ Loaded active session: ${session.id}, ${elapsed}s elapsed`);
-                    toast.info("Resumed active session", { duration: 1500 });
+
+                    if (session.stopped_at) {
+                        const stoppedAt = new Date(session.stopped_at);
+                        const elapsed = Math.floor((stoppedAt.getTime() - start.getTime()) / 1000);
+                        setSeconds(elapsed);
+                        setStoppedSeconds(elapsed);
+                        setIsRunning(false);
+                        setIsPending(true);
+                        console.log(`⏱️ Loaded stopped session: ${session.id}, ${elapsed}s elapsed (pending save)`);
+                        toast.info("Session loaded – choose Save or Reset", { duration: 2000 });
+                    } else {
+                        const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
+                        setSeconds(elapsed);
+                        setIsRunning(true);
+                        setIsPending(false);
+                        console.log(`⏱️ Loaded active session: ${session.id}, ${elapsed}s elapsed (resumed)`);
+                        toast.info("Resumed active session", { duration: 1500 });
+                    }
                 } else {
                     setSeconds(0);
                     setIsRunning(false);
-                    setIsPaused(false);
+                    setIsPending(false);
                 }
             } catch (error) {
                 console.error("Error loading active session:", error);
@@ -50,7 +64,6 @@ export function Timer() {
         };
         loadSession();
 
-        // Cleanup on unmount
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
@@ -79,7 +92,7 @@ export function Timer() {
 
     // ---- Start ----
     const handleStart = useCallback(async () => {
-        if (isRunning || isPaused) return;
+        if (isRunning || isPending) return;
 
         try {
             const session = await createActiveSession();
@@ -88,83 +101,100 @@ export function Timer() {
             const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
             setSeconds(elapsed);
             setIsRunning(true);
-            setIsPaused(false);
+            setIsPending(false);
             console.log(`⏱️ Session started: ${session.id}`);
             toast.success("Timer started", { duration: 1500 });
         } catch (error) {
             console.error("Error starting timer:", error);
             toast.error("Failed to start timer");
         }
-    }, [isRunning, isPaused, createActiveSession]);
+    }, [isRunning, isPending, createActiveSession]);
 
-    // ---- Pause ----
-    const handlePause = useCallback(() => {
-        if (!isRunning) return;
-        setIsRunning(false);
-        setIsPaused(true);
-        console.log(`⏱️ Timer paused at ${formatTimerDisplay(seconds)}`);
-        toast.info("Timer paused", { duration: 1500 });
-    }, [isRunning, seconds]);
-
-    // ---- Resume ----
-    const handleResume = useCallback(() => {
-        if (!isPaused || !activeSession) return;
-        setIsRunning(true);
-        setIsPaused(false);
-        console.log(`⏱️ Timer resumed from ${formatTimerDisplay(seconds)}`);
-        toast.info("Timer resumed", { duration: 1500 });
-    }, [isPaused, activeSession, seconds]);
-
-    // ---- Stop (end session) ----
+    // ---- Stop (pause, pending save) ----
     const handleStop = useCallback(async () => {
-        if (!activeSession) {
-            toast.error("No active session to stop");
-            return;
-        }
+        if (!isRunning || !activeSession) return;
 
         if (seconds === 0) {
-            toast.error("Timer is empty – nothing to save", { duration: 2000 });
+            toast.error("Nothing to stop", { duration: 1500 });
             return;
         }
 
         setIsRunning(false);
-        setIsPaused(false);
+        setIsPending(true);
+        setStoppedSeconds(seconds);
+
+        try {
+            const stoppedAt = new Date().toISOString();
+            await updateEntry(activeSession.id, { stopped_at: stoppedAt });
+            console.log(`⏱️ Timer stopped at ${formatTimerDisplay(seconds)} (pending save)`);
+            toast.info("Timer stopped – Save or Reset?", { duration: 2000 });
+        } catch (error) {
+            console.error("Error stopping timer:", error);
+            toast.error("Failed to stop timer");
+            setIsRunning(true);
+            setIsPending(false);
+        }
+    }, [isRunning, activeSession, seconds, updateEntry]);
+
+    // ---- Save (save to DB) ----
+    const handleSave = useCallback(async () => {
+        if (!isPending || !activeSession) {
+            toast.error("No session to save");
+            return;
+        }
+
+        if (stoppedSeconds === 0) {
+            toast.error("Nothing to save – session is empty", { duration: 2000 });
+            return;
+        }
 
         try {
             const endTime = new Date();
-            const stoppedSession = await stopActiveSession(activeSession.id, endTime);
-            console.log(`⏱️ Session stopped: ${stoppedSession.id}, elapsed: ${stoppedSession.elapsed_time}s`);
-            toast.success(`Time saved: ${formatTimerDisplay(seconds)}`, { duration: 2000 });
+            const stoppedSession = await stopActiveSession(
+                activeSession.id,
+                endTime,
+                stoppedSeconds
+            );
+            console.log(`⏱️ Session saved: ${stoppedSession.id}, elapsed: ${stoppedSession.elapsed_time}s`);
+            toast.success(`Time saved: ${formatTimerDisplay(stoppedSeconds)}`, { duration: 2000 });
+
+            setIsRunning(false);
+            setIsPending(false);
             setSeconds(0);
+            setStoppedSeconds(0);
         } catch (error) {
-            console.error("Error stopping timer:", error);
+            console.error("Error saving session:", error);
             toast.error("Failed to save timer");
-            // Restore running state if failed
-            setIsRunning(true);
-            setIsPaused(false);
         }
-    }, [activeSession, seconds, stopActiveSession]);
+    }, [isPending, activeSession, stoppedSeconds, stopActiveSession]);
 
-    // ---- Reset (cancel session) ----
+    // ---- Reset (discard) ----
     const handleReset = useCallback(async () => {
-        if (activeSession) {
-            try {
-                await stopActiveSession(activeSession.id, new Date());
-                toast.info("Session cancelled", { duration: 1500 });
-            } catch (error) {
-                console.error("Error cancelling session:", error);
-            }
+        if (!activeSession) {
+            setIsRunning(false);
+            setIsPending(false);
+            setSeconds(0);
+            setStoppedSeconds(0);
+            return;
         }
-        setIsRunning(false);
-        setIsPaused(false);
-        setSeconds(0);
-        clearActiveSession();
-        console.log("⏱️ Timer reset");
-    }, [activeSession, stopActiveSession, clearActiveSession]);
 
-    const isIdle = !isRunning && !isPaused && seconds === 0 && !activeSession;
-    const isActive = isRunning;
-    const isPausedState = isPaused && seconds > 0;
+        try {
+            await deleteEntry(activeSession.id);
+            console.log(`⏱️ Session discarded: ${activeSession.id}`);
+            toast.info("Session discarded", { duration: 1500 });
+        } catch (error) {
+            console.error("Error discarding session:", error);
+            toast.error("Failed to discard session");
+        }
+
+        setIsRunning(false);
+        setIsPending(false);
+        setSeconds(0);
+        setStoppedSeconds(0);
+        clearActiveSession();
+    }, [activeSession, deleteEntry, clearActiveSession]);
+
+    const isIdle = !isRunning && !isPending && seconds === 0 && !activeSession;
 
     if (isLoading) {
         return (
@@ -176,27 +206,17 @@ export function Timer() {
 
     return (
         <div className="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center space-y-8">
-            <TimerDisplay
-                seconds={seconds}
-                isRunning={isRunning}
-                formatTime={formatTimerDisplay}
-            />
+            <TimerDisplay seconds={seconds} isRunning={isRunning} formatTime={formatTimerDisplay} />
             <TimerControls
                 isIdle={isIdle}
-                isActive={isActive}
-                isPausedState={isPausedState}
+                isRunning={isRunning}
+                isPending={isPending}
                 onStart={handleStart}
-                onPause={handlePause}
-                onResume={handleResume}
                 onStop={handleStop}
+                onSave={handleSave}
                 onReset={handleReset}
             />
-            {/* Show active session indicator */}
-            {activeSession && !isIdle && (
-                <p className="text-xs text-muted-foreground">
-                    Session active since {new Date(activeSession.start_time).toLocaleTimeString()}
-                </p>
-            )}
+            {/* All status text removed */}
         </div>
     );
 }
