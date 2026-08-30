@@ -1,6 +1,4 @@
 // src/pages/Dashboard/types.ts
-import type { TimerEntry } from "@/context/TimerContext";
-
 export type DayData = {
     date: string;
     total: number;
