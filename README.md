@@ -9,13 +9,14 @@
 ## ✨ Features
 
 - ⏱️ **Smart Timer** – Start, pause, and resume sessions with persistence across page refreshes.
-- 📊 **Dashboard** – At-a‑glance stats: total time, session count, average duration, and current streak.
-- 📅 **History** – View sessions by date, edit or delete entries.
+- 📊 **Dashboard** – At-a‑glance stats: total time, session count, average duration, current streak, and lifetime totals.
+- 📅 **History** – View sessions by date, edit start/end times, or delete entries with overlap validation.
 - 🎯 **Daily Goals** – Set a daily focus target and track your achievement ratio.
 - 🌗 **Theme Toggle** – Light, dark, and system‑preference themes with a keyboard shortcut (`D` key).
 - 🔐 **Authentication** – Secure login and sign‑up via Supabase Auth.
 - 📦 **Offline‑ready** – Active session is saved in the database, so you never lose progress.
 - 🔍 **Built‑in Log Viewer** – Debug and inspect application logs (Ctrl+Shift+L).
+- ♿ **Accessibility** – ARIA labels, screen reader support, and keyboard shortcuts.
 
 ---
 
@@ -25,7 +26,7 @@
 |----------------|-------------------------------------------------------------------------------|
 | **Frontend**   | React 19, TypeScript, Vite, React Router DOM                                 |
 | **UI**         | shadcn/ui components, Tailwind CSS 4, Lucide icons, `tw-animate-css`        |
-| **State**      | React Context API (`TimerContext`)                                          |
+| **State**      | Zustand (global store with slices)                                           |
 | **Backend**    | Supabase (PostgreSQL, Auth, Row Level Security)                             |
 | **Date/Time**  | date‑fns                                                                     |
 | **Logging**    | Custom `logger` singleton that intercepts `console` methods                 |
@@ -56,6 +57,7 @@ Run the SQL script `supabase-setup.sql` in your Supabase SQL editor. It creates:
 
 - `timer_entries` – stores start/end times, elapsed seconds, and `stopped_at` for pending saves.
 - `user_settings` – stores each user’s daily goal in minutes.
+- `get_lifetime_stats` – a PostgreSQL function for aggregated lifetime totals.
 
 Row Level Security (RLS) policies are included to ensure users can only access their own data.
 
@@ -100,8 +102,6 @@ vigil/
 │   │   ├── LoginSignup.tsx
 │   │   ├── LogViewer.tsx  # Debug log viewer
 │   │   └── theme-provider.tsx
-│   ├── context/
-│   │   └── TimerContext.tsx   # Global timer state + Supabase CRUD
 │   ├── lib/
 │   │   ├── supabase.ts    # Supabase client
 │   │   ├── utils.ts       # `cn`, time formatters
@@ -111,10 +111,12 @@ vigil/
 │   │   ├── Timer/         # Timer logic (start/stop/save/reset)
 │   │   ├── History/       # Session list with edit/delete
 │   │   └── Settings/      # Daily goal & theme toggle
+│   ├── store/
+│   │   └── timerStore.ts  # Zustand global store
 │   ├── App.tsx
 │   ├── main.tsx
 │   └── index.css
-├── supabase-setup.sql     # Database schema + RLS
+├── supabase-setup.sql     # Database schema + RLS + lifetime stats function
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
@@ -166,4 +168,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-**Built with ❤️ by the Sayantan.**
+**Built with ❤️ by Sayantan.**

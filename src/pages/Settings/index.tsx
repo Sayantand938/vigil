@@ -5,13 +5,13 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useTimer } from "@/context/TimerContext";
+import { useTimerStore } from "@/store/timerStore";
 import { toast } from "sonner";
 import { Target, Save, Clock } from "lucide-react";
 import { SettingsSkeleton } from "./SettingsSkeleton";
 
 export function Settings() {
-    const { settings, loadingSettings, fetchSettings, updateSettings } = useTimer();
+    const { settings, loadingSettings, fetchSettings, updateSettings } = useTimerStore();
     const [dailyGoal, setDailyGoal] = useState("");
     const [saving, setSaving] = useState(false);
 

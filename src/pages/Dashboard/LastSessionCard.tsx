@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatDurationHuman } from "@/lib/utils";
-import type { TimerEntry } from "@/context/TimerContext";
+import type { TimerEntry } from "@/store/timerStore"; // <-- CHANGED
 
 type LastSessionCardProps = {
     entries: TimerEntry[];

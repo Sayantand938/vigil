@@ -1,6 +1,6 @@
 // src/pages/Dashboard/stats.ts
 import { format, parseISO } from "date-fns";
-import type { TimerEntry } from "@/context/TimerContext";
+import type { TimerEntry } from "@/store/timerStore"; // <-- CHANGED
 import type { DashboardStats, DayData } from "./types";
 
 export function computeStats(entries: TimerEntry[], dailyGoalMinutes: number): DashboardStats {

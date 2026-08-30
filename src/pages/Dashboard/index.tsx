@@ -1,6 +1,6 @@
 // src/pages/Dashboard/index.tsx
 import { useEffect, useMemo, useState } from "react";
-import { useTimer } from "@/context/TimerContext";
+import { useTimerStore } from "@/store/timerStore";
 import { computeStats } from "./stats";
 import { StatsCards } from "./StatsCards";
 import { ProductivityCards } from "./ProductivityCards";
@@ -15,7 +15,15 @@ import { AlertCircle } from "lucide-react";
 const DEFAULT_DAYS_LIMIT = 30;
 
 export function Dashboard() {
-    const { entries, loading, fetchEntries, settings, fetchSettings, fetchLifetimeStats } = useTimer();
+    const {
+        entries,
+        loading,
+        fetchEntries,
+        settings,
+        fetchSettings,
+        fetchLifetimeStats,
+    } = useTimerStore();
+
     const [lifetimeStats, setLifetimeStats] = useState<{
         totalTime: number;
         totalSessions: number;
@@ -35,7 +43,6 @@ export function Dashboard() {
         fetchEntries(startDate);
         fetchSettings();
 
-        // Fetch lifetime stats
         setLoadingLifetime(true);
         setLifetimeError(null);
         fetchLifetimeStats()
@@ -54,19 +61,17 @@ export function Dashboard() {
 
     return (
         <div className="space-y-8">
+            {/* ... same as before ... */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-sm text-muted-foreground">
                     Your productivity overview at a glance.
                 </p>
             </div>
-
-            {/* Stats Cards (last 30 days) */}
             <StatsCards stats={stats} hasEntries={hasEntries} />
             {hasEntries && <ProductivityCards stats={stats} />}
             <LastSessionCard entries={entries} />
 
-            {/* Lifetime Stats */}
             <div>
                 <h2 className="text-lg font-semibold tracking-tight mb-2">Lifetime</h2>
                 {lifetimeError && (
@@ -77,7 +82,7 @@ export function Dashboard() {
                 )}
                 <div className="grid gap-4 sm:grid-cols-3">
                     {loadingLifetime ? (
-                        // Skeleton loading
+                        // ... skeletons
                         <>
                             <Card>
                                 <CardHeader className="pb-2">
@@ -105,7 +110,7 @@ export function Dashboard() {
                             </Card>
                         </>
                     ) : lifetimeStats && lifetimeStats.totalSessions > 0 ? (
-                        // Show data
+                        // ... data
                         <>
                             <Card>
                                 <CardHeader className="pb-2">
@@ -145,7 +150,6 @@ export function Dashboard() {
                             </Card>
                         </>
                     ) : (
-                        // No sessions yet
                         <Card className="col-span-3">
                             <CardContent className="pt-6 text-center text-muted-foreground">
                                 <p>No sessions recorded yet – start your first timer!</p>

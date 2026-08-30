@@ -27,8 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { TimerEntry } from "@/context/TimerContext";
-import { useTimer } from "@/context/TimerContext";
+import type { TimerEntry } from "@/store/timerStore";
+import { useTimerStore } from "@/store/timerStore";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -39,7 +39,7 @@ type HistoryTableProps = {
 };
 
 export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTableProps) {
-    const { deleteEntry, updateEntry } = useTimer();
+    const { deleteEntry, updateEntry } = useTimerStore();
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<TimerEntry | null>(null);
     const [editStart, setEditStart] = useState("");
@@ -78,7 +78,6 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
         const startDate = new Date(editStart);
         const endDate = new Date(editEnd);
 
-        // Basic validation
         if (isNaN(startDate.getTime())) {
             toast.error("Invalid start time");
             return;
@@ -92,22 +91,18 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             return;
         }
 
-        // Duration
         const duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
         if (duration <= 0) {
             toast.error("Duration must be positive");
             return;
         }
 
-        // ---- Overlap check ----
+        // Overlap check
         const overlapping = entries.some((e) => {
-            // Skip the session we're editing
             if (e.id === editingEntry.id) return false;
-            // Only consider completed sessions (with end_time)
             if (!e.end_time) return false;
             const eStart = new Date(e.start_time);
             const eEnd = new Date(e.end_time);
-            // Overlap if the new interval intersects the existing one
             return startDate < eEnd && endDate > eStart;
         });
 
@@ -116,7 +111,6 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             return;
         }
 
-        // ---- Proceed with update ----
         setIsUpdating(true);
         try {
             await updateEntry(editingEntry.id, {

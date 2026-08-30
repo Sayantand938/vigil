@@ -1,6 +1,6 @@
 // src/pages/History/index.tsx
 import { useState, useEffect, useRef } from "react";
-import { useTimer } from "@/context/TimerContext";
+import { useTimerStore } from "@/store/timerStore";
 import { startOfDay, endOfDay } from "date-fns";
 import { HistoryHeader } from "./HistoryHeader";
 import { StatsSummary } from "./StatsSummary";
@@ -10,7 +10,7 @@ import { HistorySkeleton } from "./HistorySkeleton";
 import { formatDurationHuman, formatTimeLocale } from "@/lib/utils";
 
 export function History() {
-    const { entries, loading, fetchEntries } = useTimer();
+    const { entries, loading, fetchEntries } = useTimerStore();
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
 
     const fetchingRef = useRef(false);

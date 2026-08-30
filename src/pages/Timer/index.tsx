@@ -1,7 +1,7 @@
 // src/pages/Timer/index.tsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import { useTimer } from "@/context/TimerContext";
+import { useTimerStore } from "@/store/timerStore";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 import { formatTimerDisplay } from "@/lib/utils";
@@ -16,7 +16,7 @@ export function Timer() {
         clearActiveSession,
         deleteEntry,
         updateEntry,
-    } = useTimer();
+    } = useTimerStore();
 
     const [seconds, setSeconds] = useState(0);
     const [isRunning, setIsRunning] = useState(false);

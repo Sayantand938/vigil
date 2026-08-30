@@ -9,7 +9,8 @@ import { Timer } from "@/pages/Timer";
 import { History } from "@/pages/History";
 import { Settings } from "@/pages/Settings";
 import { LoginSignup } from "@/components/LoginSignup";
-import { Spinner } from "@/components/Spinner"; // <-- import
+import { Spinner } from "@/components/Spinner";
+import { useTimerStore } from "@/store/timerStore";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -25,13 +26,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   if (loading) {
-    return <Spinner size="lg" />; // <-- replace the loading div
+    return <Spinner size="lg" />;
   }
 
   return children;
 }
 
 export function App() {
+  const initStore = useTimerStore((state) => state.init);
+
+  useEffect(() => {
+    // Initialize the store (set up auth listener, fetch session)
+    const unsubscribe = initStore();
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [initStore]);
+
   return (
     <BrowserRouter>
       <Routes>
