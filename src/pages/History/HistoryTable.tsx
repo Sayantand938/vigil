@@ -42,6 +42,8 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<TimerEntry | null>(null);
     const [editDuration, setEditDuration] = useState("");
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const handleEdit = (entry: TimerEntry) => {
         setEditingEntry(entry);
@@ -51,11 +53,14 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
 
     const handleDelete = async (id: string) => {
         if (confirm("Are you sure you want to delete this entry?")) {
+            setIsDeleting(id);
             try {
                 await deleteEntry(id);
                 toast.success("Entry deleted");
             } catch (error) {
                 toast.error("Failed to delete entry");
+            } finally {
+                setIsDeleting(null);
             }
         }
     };
@@ -67,6 +72,7 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             toast.error("Please enter a valid duration in seconds");
             return;
         }
+        setIsUpdating(true);
         try {
             await updateEntry(editingEntry.id, { elapsed_time: newDuration });
             toast.success("Entry updated");
@@ -74,6 +80,8 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             setEditingEntry(null);
         } catch (error) {
             toast.error("Failed to update entry");
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -116,20 +124,22 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
                                                     buttonVariants({ variant: "ghost", size: "icon" }),
                                                     "size-8"
                                                 )}
+                                                aria-label="Open actions menu"
                                             >
                                                 <MoreHorizontal className="size-4" />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEdit(entry)}>
+                                                <DropdownMenuItem onClick={() => handleEdit(entry)} disabled={isUpdating}>
                                                     <Pencil className="mr-2 size-4" />
                                                     Edit
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => handleDelete(entry.id)}
                                                     className="text-destructive focus:text-destructive"
+                                                    disabled={isDeleting === entry.id}
                                                 >
                                                     <Trash2 className="mr-2 size-4" />
-                                                    Delete
+                                                    {isDeleting === entry.id ? "Deleting..." : "Delete"}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -163,10 +173,12 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isUpdating}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveEdit}>Save</Button>
+                        <Button onClick={handleSaveEdit} disabled={isUpdating}>
+                            {isUpdating ? "Saving..." : "Save"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

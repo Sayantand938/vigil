@@ -59,3 +59,23 @@ CREATE POLICY "Users can insert own settings"
 CREATE POLICY "Users can update own settings"
   ON user_settings FOR UPDATE
   USING (auth.uid() = user_id);
+
+
+
+  -- Lifetime stats for a user
+CREATE OR REPLACE FUNCTION get_lifetime_stats(user_id UUID)
+RETURNS TABLE(
+  total_time BIGINT,
+  total_sessions BIGINT,
+  avg_duration NUMERIC
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    COALESCE(SUM(elapsed_time), 0)::BIGINT AS total_time,
+    COUNT(*)::BIGINT AS total_sessions,
+    COALESCE(AVG(elapsed_time), 0)::NUMERIC(10,2) AS avg_duration
+  FROM timer_entries
+  WHERE timer_entries.user_id = get_lifetime_stats.user_id;
+END;
+$$ LANGUAGE plpgsql STABLE;

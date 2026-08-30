@@ -24,6 +24,12 @@ export type UserSettings = {
     daily_goal_minutes: number;
 };
 
+export type LifetimeStats = {
+    totalTime: number;
+    totalSessions: number;
+    avgDuration: number;
+};
+
 type TimerContextType = {
     entries: TimerEntry[];
     loading: boolean;
@@ -42,6 +48,7 @@ type TimerContextType = {
     loadingSettings: boolean;
     fetchSettings: () => Promise<void>;
     updateSettings: (newSettings: Partial<UserSettings>) => Promise<void>;
+    fetchLifetimeStats: () => Promise<LifetimeStats>; // <-- NEW
 };
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
@@ -84,7 +91,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const fetchEntries = useCallback(
         async (startDate?: Date, endDate?: Date) => {
             if (!session?.user) {
-                setLoading(false); // Prevent infinite loading
+                setLoading(false);
                 return;
             }
             setLoading(true);
@@ -109,7 +116,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         [session]
     );
 
-    // ---- addEntry (manual save) ----
+    // ---- addEntry ----
     const addEntry = useCallback(
         async (duration: number, startTime: Date, endTime: Date): Promise<TimerEntry> => {
             if (!session?.user) throw new Error("Not authenticated");
@@ -229,7 +236,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         return data;
     }, [session, checkActiveSession]);
 
-    // ---- stopActiveSession (called after Save) ----
     const stopActiveSession = useCallback(
         async (sessionId: string, endTime: Date, elapsedTime: number): Promise<TimerEntry> => {
             if (!session?.user) throw new Error("Not authenticated");
@@ -294,6 +300,24 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         [session, settings]
     );
 
+    // ---- NEW: fetchLifetimeStats ----
+    const fetchLifetimeStats = useCallback(async (): Promise<LifetimeStats> => {
+        if (!session?.user) throw new Error("Not authenticated");
+        const { data, error } = await supabase.rpc('get_lifetime_stats', {
+            user_id: session.user.id,
+        });
+        if (error) {
+            console.error("Error fetching lifetime stats:", error);
+            return { totalTime: 0, totalSessions: 0, avgDuration: 0 };
+        }
+        const stats = data?.[0] || { total_time: 0, total_sessions: 0, avg_duration: 0 };
+        return {
+            totalTime: stats.total_time,
+            totalSessions: stats.total_sessions,
+            avgDuration: stats.avg_duration,
+        };
+    }, [session]);
+
     // ---- Context value ----
     const value = useMemo(
         () => ({
@@ -314,6 +338,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             loadingSettings,
             fetchSettings,
             updateSettings,
+            fetchLifetimeStats, // <-- NEW
         }),
         [
             entries,
@@ -333,6 +358,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             loadingSettings,
             fetchSettings,
             updateSettings,
+            fetchLifetimeStats,
         ]
     );
 

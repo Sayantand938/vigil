@@ -1,10 +1,11 @@
-import { cn } from "@/lib/utils"
+// src/pages/Timer/TimerDisplay.tsx
+import { cn } from "@/lib/utils";
 
 type TimerDisplayProps = {
-    seconds: number
-    isRunning: boolean
-    formatTime: (seconds: number) => string
-}
+    seconds: number;
+    isRunning: boolean;
+    formatTime: (seconds: number) => string;
+};
 
 export function TimerDisplay({ seconds, isRunning, formatTime }: TimerDisplayProps) {
     return (
@@ -13,8 +14,11 @@ export function TimerDisplay({ seconds, isRunning, formatTime }: TimerDisplayPro
                 "font-mono text-7xl font-light tracking-wider transition-colors duration-300 md:text-8xl lg:text-9xl",
                 isRunning && "text-primary"
             )}
+            aria-live="polite"
+            aria-label={`Timer: ${formatTime(seconds)}`}
+            role="timer"
         >
             {formatTime(seconds)}
         </div>
-    )
+    );
 }

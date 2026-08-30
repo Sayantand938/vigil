@@ -18,14 +18,12 @@ export function LogViewer() {
     const [logs, setLogs] = useState<string>('');
     const [isOpen, setIsOpen] = useState(false);
 
-    // Update logs when dialog opens
     useEffect(() => {
         if (isOpen) {
             setLogs(logger.getLogsString());
         }
     }, [isOpen]);
 
-    // Keyboard shortcut: Ctrl+Shift+L to toggle
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
@@ -69,6 +67,7 @@ export function LogViewer() {
                     "fixed bottom-4 right-4 z-50 rounded-full shadow-lg"
                 )}
                 title="Open Logs (Ctrl+Shift+L)"
+                aria-label="Open application logs"
             >
                 <Bug className="size-4" />
             </DialogTrigger>
