@@ -5,8 +5,8 @@ import { computeStats } from "./stats";
 import { StatsCards } from "./StatsCards";
 import { ProductivityCards } from "./ProductivityCards";
 import { LastSessionCard } from "./LastSessionCard";
+import { DashboardSkeleton } from "./DashboardSkeleton";
 
-// Limit to last 30 days for performance
 const DEFAULT_DAYS_LIMIT = 30;
 
 export function Dashboard() {
@@ -18,40 +18,26 @@ export function Dashboard() {
     }, [entries, settings]);
 
     useEffect(() => {
-        // Fetch only the last 30 days
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - DEFAULT_DAYS_LIMIT);
         fetchEntries(startDate);
         fetchSettings();
     }, [fetchEntries, fetchSettings]);
 
-    if (loading) {
-        return (
-            <div className="flex h-64 items-center justify-center">
-                <div className="text-muted-foreground">Loading dashboard…</div>
-            </div>
-        );
-    }
+    if (loading) return <DashboardSkeleton />;
 
     const hasEntries = entries.length > 0;
 
     return (
         <div className="space-y-8">
-            {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-sm text-muted-foreground">
                     Your productivity overview at a glance.
                 </p>
             </div>
-
-            {/* Stats Cards */}
             <StatsCards stats={stats} hasEntries={hasEntries} />
-
-            {/* Productivity Cards */}
             {hasEntries && <ProductivityCards stats={stats} />}
-
-            {/* Last Session Card */}
             <LastSessionCard entries={entries} />
         </div>
     );

@@ -1,4 +1,5 @@
-import * as React from "react"; // ← import React for types
+// src/App.tsx
+import * as React from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -8,8 +9,8 @@ import { Timer } from "@/pages/Timer";
 import { History } from "@/pages/History";
 import { Settings } from "@/pages/Settings";
 import { LoginSignup } from "@/components/LoginSignup";
+import { Spinner } from "@/components/Spinner"; // <-- import
 
-// ✅ Protected Route Wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -24,11 +25,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <Spinner size="lg" />; // <-- replace the loading div
   }
 
   return children;

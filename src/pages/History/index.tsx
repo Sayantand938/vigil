@@ -6,6 +6,7 @@ import { HistoryHeader } from "./HistoryHeader";
 import { StatsSummary } from "./StatsSummary";
 import { EmptyState } from "./EmptyState";
 import { HistoryTable } from "./HistoryTable";
+import { HistorySkeleton } from "./HistorySkeleton";
 import { formatDurationHuman, formatTimeLocale } from "@/lib/utils";
 
 export function History() {
@@ -20,13 +21,10 @@ export function History() {
         const end = endOfDay(selectedDate);
         const dateKey = start.toISOString();
 
-        if (fetchingRef.current && lastFetchDateRef.current === dateKey) {
-            return;
-        }
+        if (fetchingRef.current && lastFetchDateRef.current === dateKey) return;
 
         fetchingRef.current = true;
         lastFetchDateRef.current = dateKey;
-
         fetchEntries(start, end).finally(() => {
             fetchingRef.current = false;
         });
@@ -36,17 +34,11 @@ export function History() {
         };
     }, [selectedDate, fetchEntries]);
 
+    if (loading) return <HistorySkeleton />;
+
     const totalSessions = entries.length;
     const totalDuration = entries.reduce((sum, entry) => sum + (entry.elapsed_time || 0), 0);
     const avgDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-muted-foreground">Loading history...</div>
-            </div>
-        );
-    }
 
     return (
         <div className="max-w-5xl mx-auto space-y-8">

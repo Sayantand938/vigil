@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTimer } from "@/context/TimerContext";
 import { toast } from "sonner";
 import { Target, Save, Clock } from "lucide-react";
+import { SettingsSkeleton } from "./SettingsSkeleton";
 
 export function Settings() {
     const { settings, loadingSettings, fetchSettings, updateSettings } = useTimer();
@@ -41,13 +42,7 @@ export function Settings() {
         }
     };
 
-    if (loadingSettings) {
-        return (
-            <div className="flex h-64 items-center justify-center">
-                <div className="text-muted-foreground">Loading settings…</div>
-            </div>
-        );
-    }
+    if (loadingSettings) return <SettingsSkeleton />;
 
     const currentGoal = parseInt(dailyGoal) || 0;
 
@@ -60,7 +55,6 @@ export function Settings() {
                 </p>
             </div>
 
-            {/* Appearance */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -74,7 +68,6 @@ export function Settings() {
                 </CardContent>
             </Card>
 
-            {/* Daily Goal – Redesigned */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -102,17 +95,12 @@ export function Settings() {
                                 className="h-10 text-base"
                             />
                         </div>
-                        <Button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="h-10 gap-2 px-6"
-                        >
+                        <Button onClick={handleSave} disabled={saving} className="h-10 gap-2 px-6">
                             <Save className="size-4" />
                             {saving ? "Saving…" : "Save"}
                         </Button>
                     </div>
 
-                    {/* Preview of what the goal looks like */}
                     {currentGoal > 0 && (
                         <div className="rounded-lg border border-dashed border-muted-foreground/20 bg-muted/30 p-4">
                             <p className="text-xs font-medium text-muted-foreground">Preview</p>
@@ -136,13 +124,11 @@ export function Settings() {
                                             strokeWidth="6"
                                             strokeLinecap="round"
                                             strokeDasharray={251.2}
-                                            strokeDashoffset={251.2 * 0.3} // 70% example
+                                            strokeDashoffset={251.2 * 0.3}
                                         />
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center text-center">
-                                        <span className="text-[10px] font-semibold leading-none">
-                                            0m
-                                        </span>
+                                        <span className="text-[10px] font-semibold leading-none">0m</span>
                                     </div>
                                 </div>
                                 <div>

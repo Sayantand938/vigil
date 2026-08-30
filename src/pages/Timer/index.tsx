@@ -5,6 +5,7 @@ import { useTimer } from "@/context/TimerContext";
 import { TimerDisplay } from "./TimerDisplay";
 import { TimerControls } from "./TimerControls";
 import { formatTimerDisplay } from "@/lib/utils";
+import { TimerSkeleton } from "./TimerSkeleton";
 
 export function Timer() {
     const {
@@ -197,11 +198,7 @@ export function Timer() {
     const isIdle = !isRunning && !isPending && seconds === 0 && !activeSession;
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center">
-                <div className="text-muted-foreground">Loading timer…</div>
-            </div>
-        );
+        return <TimerSkeleton />;
     }
 
     return (
