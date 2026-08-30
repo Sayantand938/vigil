@@ -6,6 +6,9 @@ import { StatsCards } from "./StatsCards";
 import { ProductivityCards } from "./ProductivityCards";
 import { LastSessionCard } from "./LastSessionCard";
 
+// Limit to last 30 days for performance
+const DEFAULT_DAYS_LIMIT = 30;
+
 export function Dashboard() {
     const { entries, loading, fetchEntries, settings, fetchSettings } = useTimer();
 
@@ -15,7 +18,10 @@ export function Dashboard() {
     }, [entries, settings]);
 
     useEffect(() => {
-        fetchEntries(); // all entries
+        // Fetch only the last 30 days
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - DEFAULT_DAYS_LIMIT);
+        fetchEntries(startDate);
         fetchSettings();
     }, [fetchEntries, fetchSettings]);
 
@@ -45,7 +51,7 @@ export function Dashboard() {
             {/* Productivity Cards */}
             {hasEntries && <ProductivityCards stats={stats} />}
 
-            {/* Last Session Card – replaces Today's Sessions */}
+            {/* Last Session Card */}
             <LastSessionCard entries={entries} />
         </div>
     );

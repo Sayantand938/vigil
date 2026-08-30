@@ -15,7 +15,7 @@ export type TimerEntry = {
     id: string;
     start_time: string;
     end_time: string | null;
-    stopped_at: string | null;    // NEW: indicates pending save
+    stopped_at: string | null;
     elapsed_time: number;
     created_at: string;
 };
@@ -27,9 +27,9 @@ export type UserSettings = {
 type TimerContextType = {
     entries: TimerEntry[];
     loading: boolean;
-    addEntry: (duration: number, startTime: Date, endTime: Date) => Promise<void>;
+    addEntry: (duration: number, startTime: Date, endTime: Date) => Promise<TimerEntry>;
     deleteEntry: (id: string) => Promise<void>;
-    updateEntry: (id: string, updates: Partial<TimerEntry>) => Promise<void>;
+    updateEntry: (id: string, updates: Partial<TimerEntry>) => Promise<TimerEntry>;
     fetchEntries: (startDate?: Date, endDate?: Date) => Promise<void>;
     clearEntries: () => void;
     activeSession: TimerEntry | null;
@@ -83,7 +83,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     // ---- fetchEntries ----
     const fetchEntries = useCallback(
         async (startDate?: Date, endDate?: Date) => {
-            if (!session?.user) return;
+            if (!session?.user) {
+                setLoading(false); // Prevent infinite loading
+                return;
+            }
             setLoading(true);
             let query = supabase
                 .from("timer_entries")
@@ -108,7 +111,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
     // ---- addEntry (manual save) ----
     const addEntry = useCallback(
-        async (duration: number, startTime: Date, endTime: Date) => {
+        async (duration: number, startTime: Date, endTime: Date): Promise<TimerEntry> => {
             if (!session?.user) throw new Error("Not authenticated");
             const newEntry = {
                 user_id: session.user.id,
@@ -147,7 +150,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
     // ---- updateEntry ----
     const updateEntry = useCallback(
-        async (id: string, updates: Partial<TimerEntry>) => {
+        async (id: string, updates: Partial<TimerEntry>): Promise<TimerEntry> => {
             if (!session?.user) throw new Error("Not authenticated");
             const { data, error } = await supabase
                 .from("timer_entries")
