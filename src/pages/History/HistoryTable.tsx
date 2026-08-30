@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import type { TimerEntry } from "@/context/TimerContext";
 import { useTimer } from "@/context/TimerContext";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 type HistoryTableProps = {
     entries: TimerEntry[];
@@ -41,13 +42,19 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
     const { deleteEntry, updateEntry } = useTimer();
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<TimerEntry | null>(null);
-    const [editDuration, setEditDuration] = useState("");
+    const [editStart, setEditStart] = useState("");
+    const [editEnd, setEditEnd] = useState("");
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
     const handleEdit = (entry: TimerEntry) => {
         setEditingEntry(entry);
-        setEditDuration(String(entry.elapsed_time || 0));
+        const startTime = entry.start_time;
+        const endTime = entry.end_time;
+        const startStr = format(new Date(startTime), "yyyy-MM-dd'T'HH:mm");
+        const endStr = endTime ? format(new Date(endTime), "yyyy-MM-dd'T'HH:mm") : "";
+        setEditStart(startStr);
+        setEditEnd(endStr);
         setEditDialogOpen(true);
     };
 
@@ -67,14 +74,56 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
 
     const handleSaveEdit = async () => {
         if (!editingEntry) return;
-        const newDuration = parseInt(editDuration);
-        if (isNaN(newDuration) || newDuration <= 0) {
-            toast.error("Please enter a valid duration in seconds");
+
+        const startDate = new Date(editStart);
+        const endDate = new Date(editEnd);
+
+        // Basic validation
+        if (isNaN(startDate.getTime())) {
+            toast.error("Invalid start time");
             return;
         }
+        if (isNaN(endDate.getTime())) {
+            toast.error("Invalid end time");
+            return;
+        }
+        if (endDate <= startDate) {
+            toast.error("End time must be after start time");
+            return;
+        }
+
+        // Duration
+        const duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+        if (duration <= 0) {
+            toast.error("Duration must be positive");
+            return;
+        }
+
+        // ---- Overlap check ----
+        const overlapping = entries.some((e) => {
+            // Skip the session we're editing
+            if (e.id === editingEntry.id) return false;
+            // Only consider completed sessions (with end_time)
+            if (!e.end_time) return false;
+            const eStart = new Date(e.start_time);
+            const eEnd = new Date(e.end_time);
+            // Overlap if the new interval intersects the existing one
+            return startDate < eEnd && endDate > eStart;
+        });
+
+        if (overlapping) {
+            toast.error("This session overlaps with another existing session. Please adjust the times.");
+            return;
+        }
+
+        // ---- Proceed with update ----
         setIsUpdating(true);
         try {
-            await updateEntry(editingEntry.id, { elapsed_time: newDuration });
+            await updateEntry(editingEntry.id, {
+                start_time: startDate.toISOString(),
+                end_time: endDate.toISOString(),
+                elapsed_time: duration,
+            });
             toast.success("Entry updated");
             setEditDialogOpen(false);
             setEditingEntry(null);
@@ -84,6 +133,16 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
             setIsUpdating(false);
         }
     };
+
+    const computedDuration = (() => {
+        if (!editStart || !editEnd) return null;
+        const start = new Date(editStart);
+        const end = new Date(editEnd);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+        const diff = Math.floor((end.getTime() - start.getTime()) / 1000);
+        if (diff <= 0) return null;
+        return formatDuration(diff);
+    })();
 
     return (
         <>
@@ -151,26 +210,46 @@ export function HistoryTable({ entries, formatTime, formatDuration }: HistoryTab
                 </CardContent>
             </Card>
 
-            {/* Edit Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Edit Duration</DialogTitle>
+                        <DialogTitle>Edit Session</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="duration" className="text-right">
-                                Duration (seconds)
+                            <Label htmlFor="edit-start" className="text-right">
+                                Start
                             </Label>
                             <Input
-                                id="duration"
-                                type="number"
-                                value={editDuration}
-                                onChange={(e) => setEditDuration(e.target.value)}
+                                id="edit-start"
+                                type="datetime-local"
+                                value={editStart}
+                                onChange={(e) => setEditStart(e.target.value)}
                                 className="col-span-3"
-                                min={1}
                             />
                         </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="edit-end" className="text-right">
+                                End
+                            </Label>
+                            <Input
+                                id="edit-end"
+                                type="datetime-local"
+                                value={editEnd}
+                                onChange={(e) => setEditEnd(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                        {computedDuration && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right text-muted-foreground">
+                                    Duration
+                                </Label>
+                                <div className="col-span-3 text-sm font-mono">
+                                    {computedDuration}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isUpdating}>
