@@ -1,8 +1,15 @@
 // src/components/LoginSignup.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +18,15 @@ import { supabase } from "@/lib/supabase";
 export function LoginSignup() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+
+    // ✅ If already logged in, redirect to dashboard
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                navigate("/");
+            }
+        });
+    }, [navigate]);
 
     // Login state
     const [loginEmail, setLoginEmail] = useState("");
@@ -32,7 +48,7 @@ export function LoginSignup() {
         });
         if (error) {
             console.error("❌ Login error:", error);
-            alert(error.message);
+            toast.error(error.message);
         } else {
             console.log(`✅ User logged in: ${loginEmail}`);
             navigate("/");
@@ -43,7 +59,7 @@ export function LoginSignup() {
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         if (signupPassword !== signupConfirm) {
-            alert("Passwords do not match");
+            toast.error("Passwords do not match");
             return;
         }
         setIsLoading(true);
@@ -55,10 +71,10 @@ export function LoginSignup() {
         });
         if (error) {
             console.error("❌ Signup error:", error);
-            alert(error.message);
+            toast.error(error.message);
         } else {
             console.log(`✅ User signed up: ${signupEmail}`);
-            alert("Check your email for confirmation!");
+            toast.success("Check your email for confirmation!");
         }
         setIsLoading(false);
     };
@@ -103,14 +119,13 @@ export function LoginSignup() {
                                         required
                                     />
                                 </div>
-                                {/* Removed the "remember me" checkbox and "forgot password" link – you can add them back later */}
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? "Logging in..." : "Login"}
                                 </Button>
                             </form>
                         </TabsContent>
 
-                        {/* SIGNUP TAB (unchanged) */}
+                        {/* SIGNUP TAB */}
                         <TabsContent value="signup">
                             <form onSubmit={handleSignup} className="space-y-4">
                                 <div className="space-y-2">

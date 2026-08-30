@@ -1,17 +1,51 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
-import { Layout } from "@/components/Layout"
-import { Dashboard } from "@/pages/Dashboard"
-import { Timer } from "@/pages/Timer"
-import { History } from "@/pages/History"
-import { Settings } from "@/pages/Settings"
-import { LoginSignup } from "@/components/LoginSignup"
+import * as React from "react"; // ← import React for types
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Layout } from "@/components/Layout";
+import { Dashboard } from "@/pages/Dashboard";
+import { Timer } from "@/pages/Timer";
+import { History } from "@/pages/History";
+import { Settings } from "@/pages/Settings";
+import { LoginSignup } from "@/components/LoginSignup";
+
+// ✅ Protected Route Wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/login");
+      }
+      setLoading(false);
+    });
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  return children;
+}
 
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginSignup />} />
-        <Route element={<Layout />}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<Dashboard />} />
           <Route path="/timer" element={<Timer />} />
           <Route path="/history" element={<History />} />
@@ -19,7 +53,7 @@ export function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
